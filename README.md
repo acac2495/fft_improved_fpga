@@ -67,6 +67,7 @@ Then, in the second layer, the data is read from Bank B, and stored into Bank A.
 This alternating scheme keeps repeating, till all butterfly layers are finished.
 
 The bank access is controlled insode `agu.v`, with a `bank_sel` signal toggling at the end of every flush cycle.
+
 ---
 
 ## Simulation
