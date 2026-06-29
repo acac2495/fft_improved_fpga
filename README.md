@@ -54,6 +54,7 @@ Here, `rotateN(a,b)` functions as a circular left shift of `a` by `b` positions,
 Hence, the AGU functions as an FSM, which cycles `i` from 0 to `$clog2(N) - 1`, and `j` from 0 to `N/2 - 1` for every `i`, and keeps sending the addresses out in a pipelined manner
 When the `j` cycle is complete, all butterflies of a layer are done. The FSM waits for 5 flush cycles, for the computations of the layer to complete, before moving to the next.
 This avoids hazards.
+
 ---
 
 ## Memory Management and BRAM
@@ -63,7 +64,7 @@ This avoids hazards.
 The calculation starts off by loading signal data into Bank A, reading from this bank, for the first layer.
 The first layer computation results are stored in Bank B.
 Then, in the second layer, the data is read from Bank B, and stored into Bank A.
-This alternating scheme keeps repeating, till all butterfly layers are done
+This alternating scheme keeps repeating, till all butterfly layers are finished.
 
 The bank access is controlled insode `agu.v`, with a `bank_sel` signal toggling at the end of every flush cycle.
 ---
