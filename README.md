@@ -16,7 +16,7 @@ https://github.com/acac2495/fft_core_axi
 - Fixed-point arithmetic
   - Q1.18 format for twiddle factors
   - Q8.11 format for input and FFT output data
-- Count-and-Rotate address generation
+- Ping-Pong memory addressing scheme, utilising 2 dual port BRAM modules alternately
 - AXI-Lite slave wrapper with busy-protected register access
 - MATLAB-generated test vectors with floating-point reference comparison
 
@@ -30,6 +30,7 @@ https://github.com/acac2495/fft_core_axi
 | `mem_proc_unit.v` | Memory and Butterfly Processing Unit |
 | `top_fft.v` | Top-level FFT module |
 | `fft_axi_interface.v` | AXI-Lite Slave Wrapper |
+| `dual_port_ram.v` | Dual Port Memory (BRAM - Style)
 
 ---
 
@@ -37,6 +38,34 @@ https://github.com/acac2495/fft_core_axi
 
 *Architecture diagram coming soon.*
 
+---
+
+## Address Generation
+
+An `N` point FFT requires `$clog2(N)` layers, with each layer containing N/2 butterflies of compute.
+The input to the FFT comes in a bit-reversed form of the original signal.
+
+The following formula can be used to address the butterflies for a given layer : 
+
+Consider `i` to be the layer number, and `j` to be the butterfly number
+The upper memory address in the butterfly is given as : `rotateN(2j, i)`, and the lower as `rotateN(2j + 1, i)`
+Here, `rotateN(a,b)` functions as a circular left shift of `a` by `b` positions, where a is an `N` bit number.
+
+Hence, the AGU functions as an FSM, which cycles `i` from 0 to `$clog2(N) - 1`, and `j` from 0 to `N/2 - 1` for every `i`, and keeps sending the addresses out in a pipelined manner
+When the `j` cycle is complete, all butterflies of a layer are done. The FSM waits for 5 flush cycles, for the computations of the layer to complete, before moving to the next.
+This avoids hazards.
+---
+
+## Memory Management and BRAM
+
+2 'banks' of BRAM are used here : Bank A and Bank B, with separate real and imaginary versions, hence 4 memory modules in total.
+
+The calculation starts off by loading signal data into Bank A, reading from this bank, for the first layer.
+The first layer computation results are stored in Bank B.
+Then, in the second layer, the data is read from Bank B, and stored into Bank A.
+This alternating scheme keeps repeating, till all butterfly layers are done
+
+The bank access is controlled insode `agu.v`, with a `bank_sel` signal toggling at the end of every flush cycle.
 ---
 
 ## Simulation
